@@ -9,7 +9,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain.embeddings.base import Embeddings
-from heloer import Model
+from helper import Model
 from dotenv import load_dotenv
 
 load_dotenv()
