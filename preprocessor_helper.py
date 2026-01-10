@@ -9,6 +9,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain.embeddings.base import Embeddings
+from heloer import Model
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -45,6 +46,7 @@ class NovelPreprocessor():
         self.novel_path = novel_path
         self.novel_name = novel_name
         self.book_chunks = []
+        self.model = Model()
 
     # method to break novel to chunks
     def split_book_into_chunks(self, chunk_size: int = 10000, chunk_overlap: int = 200):
@@ -97,7 +99,7 @@ class NovelPreprocessor():
                 print("Loading from cache...")
                 extracted_text = load_cache(f"cache/cache_facts_{self.novel_name}.json")
             else:
-                llm = ChatOllama(model="gemma3:4b", temperature=0)
+                llm = self.model.get_llm()
 
                 # Define the prompt for fact extraction
                 prompt_template = ChatPromptTemplate.from_messages([
@@ -132,7 +134,7 @@ class NovelPreprocessor():
                 embedding_vectors = load_cache(f"cache/cache_embeddings_facts_{self.novel_name}.json")
                 # embeddings_model = PrecomputedEmbeddings(embeddings_list)
             else:
-                embeddings_model = OllamaEmbeddings(model="embeddinggemma:latest")
+                embeddings_model = self.model.get_embedding_model()
                 # Generate embeddings for each fact sentence
                 embedding_vectors = embeddings_model.embed_documents(fact_sentences)
                 save_cache(embedding_vectors, f"cache/cache_embeddings_facts_{self.novel_name}.json")
@@ -177,7 +179,7 @@ class NovelPreprocessor():
         ids = []
         print("Preparing documents and embeddings for FAISS...")
 
-        idx = 0
+        # idx = 0
         for chunk_id, vectors in embeddings_dict.items():
             for vec in vectors:
                 documents.append(

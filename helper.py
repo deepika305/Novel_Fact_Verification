@@ -51,7 +51,7 @@ class PrecomputedEmbeddings(Embeddings):
     def embed_query(self, text):
         raise NotImplementedError("Use similarity_search_by_vector()")
 
-def extract_and_embed_claims_langchain(claim_sentence: str, bookname: str, llm):
+def extract_and_embed_claims_langchain(claim_sentence: str, bookname: str, model):
         if not GOOGLE_API_KEY:
             print("API key not set. Generating mock facts and embeddings.")
             # Mock fact extraction
@@ -79,7 +79,7 @@ def extract_and_embed_claims_langchain(claim_sentence: str, bookname: str, llm):
             #     print("Loading from cache...")
                 # extracted_text = load_cache(f"cahe/cache_claims_{bookname}.json")
             # else:
-            llm = ChatOllama(model="gemma3:4b", temperature=0)
+            llm = model.get_llm()
 
             # Define the prompt for fact extraction
             prompt_template = ChatPromptTemplate.from_messages([
@@ -127,7 +127,7 @@ def extract_and_embed_claims_langchain(claim_sentence: str, bookname: str, llm):
             #     embedding_vectors = load_cache(f"cache_embeddings_{bookname}.json")
             #     # embeddings_model = PrecomputedEmbeddings(embeddings_list)
             # else:
-            embeddings_model = OllamaEmbeddings(model="embeddinggemma:latest")
+            embeddings_model = model.get_embedding_model()
 
             # Generate embeddings for each fact sentence
             embedding_vectors = embeddings_model.embed_documents(claim_sentences)
@@ -149,7 +149,7 @@ def extract_and_embed_claims_langchain(claim_sentence: str, bookname: str, llm):
             print(f"An error occurred during fact extraction or embedding: {e}")
             return []
 
-def check_consistency(backstory: str, chunk: str, char: str, llm):
+def check_consistency(backstory: str, chunk: str, char: str, model):
     prompt_template = PromptTemplate(
     input_variables=["character_name", "backstory", "chunk"],
     template="""
@@ -182,7 +182,7 @@ def check_consistency(backstory: str, chunk: str, char: str, llm):
             """
             )
     output_parser = JsonOutputParser()
-    chain = prompt_template | llm | output_parser
+    chain = prompt_template | model.get_llm() | output_parser
 
     result = chain.invoke({
         "character_name": char,
@@ -194,10 +194,10 @@ def check_consistency(backstory: str, chunk: str, char: str, llm):
 
     return result
 
-def dummy_function(bookname, char, content, llm):
+def dummy_function(bookname, char, content, model):
     print("dummy function called")
     backstory = f"This line is for {char} character: {content}"
-    list_of_documents = extract_and_embed_claims_langchain(backstory, bookname, llm)
+    list_of_documents = extract_and_embed_claims_langchain(backstory, bookname, model)
     vectorstore = FAISS.load_local(
     f"{bookname}_faiss_index",
     embeddings=PrecomputedEmbeddings(),
@@ -218,7 +218,7 @@ def dummy_function(bookname, char, content, llm):
 
          chunk = chunks[int(chunk_id)]
          print("starting comaparison....")
-         verdict = check_consistency(backstory, chunk, char, llm)
+         verdict = check_consistency(backstory, chunk, char, model)
          print("verdict calculated")
          if verdict["Verdict"].lower() == "contradict":
                 final_verdict = "contradict"

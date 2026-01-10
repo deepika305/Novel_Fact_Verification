@@ -28,7 +28,7 @@ class DataSetLoader:
                 char = str(row["char"])
                 content = str(row["content"])
 
-                verdict, reason = dummy_function(bookname, char, content, self.model.get_llm())
+                verdict, reason = dummy_function(bookname, char, content, self.model)
                 # expected: {"verdict": "...", "reason": "..."}
 
                 results.append({
