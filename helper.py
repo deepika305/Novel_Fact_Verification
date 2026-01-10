@@ -213,7 +213,7 @@ def dummy_function(bookname, char, content, llm):
          print("Similarity search done!!!")
          chunk_id = fact_docs[0].metadata['chunk_id']
 
-         with open("data.json", "r") as f:
+         with open(f"cache/cache_chunks_{bookname}.json", "r") as f:
              chunks = json.load(f)
 
          chunk = chunks[int(chunk_id)]

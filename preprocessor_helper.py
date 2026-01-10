@@ -71,7 +71,7 @@ class NovelPreprocessor():
         # self.book_chunks = chunks
         # add page content in book_chunks
         self.book_chunks = [chunk.page_content for chunk in chunks]
-        with open("data.json", "w") as f:
+        with open(f"cache/cache_chunks_{self.novel_name}.json", "w") as f:
             json.dump(self.book_chunks, f)
         return chunks
     
