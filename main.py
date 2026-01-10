@@ -11,6 +11,6 @@ if __name__ == "__main__":
     print("Starting Novel Fact Verification Process...")
     # specify novel path and name
     # show the list of files in dataset folder
-    path = "Dataset/harrytest.csv"
+    path = "Dataset/new.csv"
     dataset_loader = DataSetLoader(backstory_path=path)
     dataset_loader.generate_output()

@@ -11,15 +11,19 @@ from langchain_core.documents import Document
 from langchain.embeddings.base import Embeddings
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from dotenv import load_dotenv
+from langchain_classic.output_parsers import OutputFixingParser
+from custom_llm import CustomLLM
 
-load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+# from dotenv import load_dotenv
+
+# load_dotenv()
+# GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 
 class Model:
     def __init__(self):
-        self.llm = ChatOllama(model="gemma3:4b", temperature=0)
+        # self.llm = ChatOllama(model="gemma3:4b", temperature=0)
+        self.llm = CustomLLM()
         self.embedding_model = OllamaEmbeddings(model="embeddinggemma:latest")
     def get_llm(self):
         return self.llm
@@ -52,20 +56,20 @@ class PrecomputedEmbeddings(Embeddings):
         raise NotImplementedError("Use similarity_search_by_vector()")
 
 def extract_and_embed_claims_langchain(claim_sentence: str, bookname: str, model):
-        if not GOOGLE_API_KEY:
-            print("API key not set. Generating mock facts and embeddings.")
-            # Mock fact extraction
-            mock_facts = [f"Mock fact 1 from: {claim_sentence[:20]}...",
-                        f"Mock fact 2 from : {claim_sentence[20:40]}..."]
+        # if not GOOGLE_API_KEY:
+        #     print("API key not set. Generating mock facts and embeddings.")
+        #     # Mock fact extraction
+        #     mock_facts = [f"Mock fact 1 from: {claim_sentence[:20]}...",
+        #                 f"Mock fact 2 from : {claim_sentence[20:40]}..."]
 
-            # Mock embedding generation (e.g., random vectors)
-            # A common embedding dimension for Gemini models is 768 or 1536.
-            # Using 768 as a placeholder for mock data consistency.
-            mock_embedding_vectors = [np.random.rand(768).tolist() for _ in mock_facts]
-            print(f"Mock extracted facts: {mock_facts}")
-            return []
+        #     # Mock embedding generation (e.g., random vectors)
+        #     # A common embedding dimension for Gemini models is 768 or 1536.
+        #     # Using 768 as a placeholder for mock data consistency.
+        #     mock_embedding_vectors = [np.random.rand(768).tolist() for _ in mock_facts]
+        #     print(f"Mock extracted facts: {mock_facts}")
+        #     return []
 
-        try:
+        # try:
             # Initialize the Gemini LLM for fact extraction using Langchain
             # Changed model from 'gemini-pro' to 'gemini-pro-latest' as it is available.
 
@@ -83,7 +87,11 @@ def extract_and_embed_claims_langchain(claim_sentence: str, bookname: str, model
 
             # Define the prompt for fact extraction
             prompt_template = ChatPromptTemplate.from_messages([
-                ("system", "Extract distinct, atomic facts from the following sentence. List each fact on a new line. Do not include introductory phrases or numbers. If no facts can be extracted, return an empty string."),
+                ("system", (
+                    "Extract distinct, atomic facts from the following sentences."
+                    " List each fact on a new line as a sentence. Do not include introductory phrases."
+                    " If no facts can be extracted, return an empty string."
+                )),
                 ("human", "Sentence: {sentence}")
             ])
 
@@ -145,9 +153,9 @@ def extract_and_embed_claims_langchain(claim_sentence: str, bookname: str, model
 
             return list_of_documents
 
-        except Exception as e:
-            print(f"An error occurred during fact extraction or embedding: {e}")
-            return []
+        # except Exception as e:
+        #     print(f"An error occurred during fact extraction or embedding: {e}")
+        #     return []
 
 def check_consistency(backstory: str, chunk: str, char: str, model):
     prompt_template = PromptTemplate(
@@ -182,6 +190,10 @@ def check_consistency(backstory: str, chunk: str, char: str, model):
             """
             )
     output_parser = JsonOutputParser()
+    safe_parser = OutputFixingParser.from_llm(
+        parser=output_parser,
+        llm=Model.get_llm(model)
+    )
     chain = prompt_template | model.get_llm() | output_parser
 
     result = chain.invoke({
@@ -209,7 +221,7 @@ def dummy_function(bookname, char, content, model):
     for claim_doc in list_of_documents:
          query_emb = claim_doc.metadata["embedding"]
          query_vector = np.array(query_emb, dtype="float32")
-         fact_docs = vectorstore.similarity_search_by_vector(query_vector, k=1)
+         fact_docs = vectorstore.similarity_search_by_vector(query_vector, k=3)
          print("Similarity search done!!!")
          chunk_id = fact_docs[0].metadata['chunk_id']
 
