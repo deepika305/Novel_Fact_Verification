@@ -1,0 +1,61 @@
+story_id,prediction,rationale
+95,1,All claims are consistent with the backstory.
+136,0,"The chunk portrays Faria as an imprisoned, treasure‑obsessed elder at odds with a tale of him quietly living on a small island from 1800 onward, drafting a vast work on human intelligence and sending its chapters secretly, a behavior and setting wholly absent and inconsistent."
+59,1,All claims are consistent with the backstory.
+60,1,All claims are consistent with the backstory.
+124,0,"The chunk never mentions Faria at all, yet the backstory specifies Faria watching Caderousse steal a rope and doing nothing – an action absent from the text."
+111,1,All claims are consistent with the backstory.
+135,0,"The novel shows Faria still imprisoned and planning an escape, yet the backstory says he successfully escaped in 1800."
+27,0,"The chunk refers to the character as Tom Austin, while the backstory names him Tom Ayrton (Ben Joyce); this mismatch indicates an inconsistency in the character’s identity."
+110,1,All claims are consistent with the backstory.
+42,0,"The chunk portrays Ben Joyce as a convict leader, yet the backstory identifies Tom Ayrton/Ben Joyce as a seasoned seafarer aboard the Britannia, representing a clear inconsistency in identity and occupation."
+56,0,"Thalcave appears humbled for a false trail, with no evidence of him predicting an earthquake or saving the party—contradicting his backstory."
+80,0,"Kai‑Koumou is described as a senior chief negotiating exchanges, yet the backstory only establishes him as a “Junior Warrior” at age twelve."
+28,0,"The chunk portrays Ayrton as a quartermaster on the Britannia who mutinied with Captain Grant, never mentioning the merchant Emerald Bird, or the captain pocketing insurance money and forcing Ayrton to give false testimony as the backstory dictates."
+101,1,All claims are consistent with the backstory.
+91,1,All claims are consistent with the backstory.
+24,1,All claims are consistent with the backstory.
+119,1,All claims are consistent with the backstory.
+93,1,All claims are consistent with the backstory.
+72,1,All claims are consistent with the backstory.
+16,0,"The chunk labels Paganel as “the Frenchman,” implying full French identity, yet the backstory identifies his father as a British merchant, making his nationality primarily British, not French."
+30,0,"The backstory says Ayrton was a pirate second mate in Black Tide (nicknamed “Blood Raven”), yet the chunk has him claim the title of quartermaster of the merchant vessel Britannia, a role inconsistent with his piratical background."
+97,1,All claims are consistent with the backstory.
+22,0,"Jacques Paganel, who prides himself on quiet chivalry for the weak and anti‑colonial covert aid, is orchestrating a dangerous artificial eruption that could kill the very natives he supposedly protects, conflicting with his pacifist creed."
+53,1,All claims are consistent with the backstory.
+58,1,All claims are consistent with the backstory.
+81,0,"Kai‑Koumou speaks English to captives, yet the backstory only notes he learned Spanish slang, not that he knows or uses English."
+47,0,"Thalcave was described as a 13‑year‑old who fled alone, yet the chunk portrays him as an adult commander directing an expedition, an age inconsistency with his backstory."
+7,0,"Jacques insisted on traveling light, yet according to his backstory he now keeps a bulging backpack wherever he goes, contradicting the minimalist approach he once adopted."
+121,0,"Faria is stated to have met Edmond Dantès’ father aboard the prison transport, yet no such meeting occurs in the provided chunk."
+129,1,All claims are consistent with the backstory.
+51,1,All claims are consistent with the backstory.
+127,0,"Faria, who is said to have spent twenty years in a cell calculating Mediterranean tides to later predict guards’ rounds, is not referenced or implicated in this excerpt, which centers solely on Dantès."
+133,1,All claims are consistent with the backstory.
+52,1,All claims are consistent with the backstory.
+114,1,All claims are consistent with the backstory.
+2,1,All claims are consistent with the backstory.
+33,0,"The backstory says Tom Ayrton/Ben Joyce volunteered to spy on colonization schemes backed by Scottish nobles, yet the chunk depicts him unquestioningly obeying a letter from Glenarvan, behaving as a compliant crew member rather than a covert spy."
+15,0,"Jacques Paganel's calm, discerning nature from his Amazon training clashes with his aggressive, unreflective behavior in the chapter, including shouting, failing to use bone ornaments for assessment, and overconfidence."
+82,1,All claims are consistent with the backstory.
+37,0,"Tom Ayrton, who was raised learning tides and winds and secretly studying the Nautical Almanac as a hopeful seafarer, is depicted in the chunk as a mutinous convict leader and criminal, a stark departure from his serene maritime upbringing."
+3,0,"The passage depicts Paganel as focused on New Zealand mapping and does not mention him leaving home after his mother’s death, nor carrying the Polynesian charts bequeathed to him, contradicting his stated backstory."
+103,0,"Noirtier’s backstory depicts him wary of power’s corruption and distancing himself from allies, yet in the chunk he actively manipulates wills, engages notaries, and uses his influence—behaviours that directly contradict his cautious, detached disposition."
+94,0,"Noirtier is described as paralyzed in the backstory, yet the chunk shows him recovering self‑command and physically indicating a closet."
+85,0,"The chunk shows Kai‑Koumou engaged in funeral rites and demanding death for the captives, with no indication of him leading any pursuit for the missing captain’s daughter, contrary to his backstory."
+21,0,"The backstory says Paganel is a sympathetic young sailor promoted to ship’s assistant on HMS Austin, yet the chunk depicts him as a desert guard and geographer studying astronomy, never aboard the frigate."
+49,1,All claims are consistent with the backstory.
+140,1,All claims are consistent with the backstory.
+64,1,All claims are consistent with the backstory.
+131,1,All claims are consistent with the backstory.
+61,1,All claims are consistent with the backstory.
+86,0,"Kai-Koumou is described as valuing life and keeping his word, yet the chunk shows him threatening to trade human lives, attempting deceit, and likely violating his promise, breaking that core trait."
+38,0,Tom Ayrton/Ben Joyce’s quick temper and refusal to accept unjust punishment are contradicted by Tom’s calm obedience and lack of rebellious actions in the chunk.
+132,1,All claims are consistent with the backstory.
+77,0,"The backstory says Kai‑Koumou, spurred by Wallace’s bird‑of‑paradise book, sees Glenarvan as linked to the naturalist—implying at least some respect or trust—yet the chunk shows him hostile toward Glenarvan, seeking trade and expecting betrayal."
+70,1,All claims are consistent with the backstory.
+115,1,All claims are consistent with the backstory.
+78,1,All claims are consistent with the backstory.
+87,1,All claims are consistent with the backstory.
+75,1,All claims are consistent with the backstory.
+44,0,"Tom says he never knows Ben Joyce yet the backstory identifies him as Ben Joyce/Ayrton, and his diary shows self‑loathing for betrayal—none of this is reflected in his calm, obedient dialogue."
