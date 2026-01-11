@@ -32,15 +32,15 @@ class DataSetLoader:
                 # expected: {"verdict": "...", "reason": "..."}
 
                 results.append({
-                    "id": id,
+                    "story_id": id,
                     # "book_name": bookname,
                     # "char": char,
                     # "content": content,
-                    "verdict": verdict.lower(),
-                    "reason": reason
+                    "prediction": verdict,
+                    "rationale": reason
                 })
             out_df = pd.DataFrame(results)
-            out_df.to_csv("output.csv", index=False, encoding="utf-8")
+            out_df.to_csv("results.csv", index=False, encoding="utf-8")
             print("Output saved to output.csv")
             
         # except Exception as e:

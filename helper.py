@@ -21,8 +21,7 @@ class Model:
         # self.llm = ChatOllama(model="gemma3:4b", temperature=0)
         self.llm = CustomLLM()
         self.embedding_model = OllamaEmbeddings(
-             model="embeddinggemma:latest",
-             base_url="https://d7jqfq3b-11434.inc1.devtunnels.ms/"
+             model="embeddinggemma:latest"
              )
     def get_llm(self):
         return self.llm
@@ -270,7 +269,7 @@ def dummy_function(bookname, char, content, model):
     allow_dangerous_deserialization=True
     )
     print("vector store loaded...")
-    final_verdict = "consistent"
+    final_verdict = "1"
     reason = "All claims are consistent with the backstory."
     for claim_doc in list_of_documents:
          query_emb = claim_doc.metadata["embedding"]
@@ -287,7 +286,7 @@ def dummy_function(bookname, char, content, model):
          verdict = check_consistency(backstory, chunk, char, model)
          print("verdict calculated")
          if verdict["Verdict"].lower() == "contradict":
-                final_verdict = "contradict"
+                final_verdict = "0"
                 reason = verdict["Reason"]
                 return final_verdict, reason
     print(f"Final Verdict: {final_verdict}, Reason: {reason}")

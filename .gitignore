@@ -5,3 +5,4 @@ __pycache__
 cache/
 test.py
 *_index/
+.DS_Store
