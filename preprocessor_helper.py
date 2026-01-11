@@ -9,10 +9,13 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain.embeddings.base import Embeddings
-from dotenv import load_dotenv
+from langchain_core.prompts import PromptTemplate
+from helper import Model
+from time import sleep
+# from dotenv import load_dotenv
 
-load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+# load_dotenv()
+# GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 def load_cache(CACHE_FILE):
     with open(CACHE_FILE, "r") as f:
@@ -45,6 +48,7 @@ class NovelPreprocessor():
         self.novel_path = novel_path
         self.novel_name = novel_name
         self.book_chunks = []
+        self.model = Model()
 
     # method to break novel to chunks
     def split_book_into_chunks(self, chunk_size: int = 10000, chunk_overlap: int = 200):
@@ -75,127 +79,216 @@ class NovelPreprocessor():
             json.dump(self.book_chunks, f)
         return chunks
     
-    # method to extract facts from chunks
-    def extract_and_embed_facts_langchain(self, claim_sentence: str, chunk_id: int):
-        if not GOOGLE_API_KEY:
-            print("API key not set. Generating mock facts and embeddings.")
-            # Mock fact extraction
-            mock_facts = [f"Mock fact 1 from chunk {chunk_id}: {claim_sentence[:20]}...",
-                        f"Mock fact 2 from chunk {chunk_id}: {claim_sentence[20:40]}..."]
-
-            # Mock embedding generation (e.g., random vectors)
-            # A common embedding dimension for Gemini models is 768 or 1536.
-            # Using 768 as a placeholder for mock data consistency.
-            mock_embedding_vectors = [np.random.rand(768).tolist() for _ in mock_facts]
-            print(f"Mock extracted facts: {mock_facts}")
-            return {chunk_id: mock_embedding_vectors}
-
-        try:
-            # Initialize the Gemini LLM for fact extraction using Langchain
-            # Changed model from 'gemini-pro' to 'gemini-pro-latest' as it is available.
-            if os.path.exists(f"cache/cache_facts_{self.novel_name}.json"):
-                print("Loading from cache...")
-                extracted_text = load_cache(f"cache/cache_facts_{self.novel_name}.json")
-            else:
-                llm = ChatOllama(model="gemma3:4b", temperature=0)
-
-                # Define the prompt for fact extraction
-                prompt_template = ChatPromptTemplate.from_messages([
-                    ("system", "Extract distinct, atomic facts from the following sentence. List each fact on a new line. Do not include introductory phrases or numbers. If no facts can be extracted, return an empty string."),
-                    ("human", "Sentence: {sentence}")
-                ])
-
-                # Create a Langchain chain for fact extraction
-                fact_extraction_chain = ({"sentence": RunnablePassthrough()} | prompt_template | llm | StrOutputParser())
-
-                # Invoke the chain to extract facts
-                extracted_text = fact_extraction_chain.invoke(claim_sentence)
-                extracted_text = extracted_text.strip()
-                save_cache(extracted_text, f"cache/cache_facts_{self.novel_name}.json")
-
-            if not extracted_text:
-                print("No facts extracted.")
-                return {chunk_id: []}
-
-            # Assuming facts are newline-separated
-            fact_sentences = [fact.strip() for fact in extracted_text.split('\n') if fact.strip()]
-
-            if not fact_sentences:
-                print("No valid fact sentences parsed.")
-                return {chunk_id: []}
-
-            print(f"Extracted facts: {fact_sentences}")
-
-            # Initialize the embedding model using Langchain
-            if os.path.exists(f"cache/cache_embeddings_facts_{self.novel_name}.json"):
-                print("Loading embeddings from cache...")
-                embedding_vectors = load_cache(f"cache/cache_embeddings_facts_{self.novel_name}.json")
-                # embeddings_model = PrecomputedEmbeddings(embeddings_list)
-            else:
-                embeddings_model = OllamaEmbeddings(model="embeddinggemma:latest")
-                # Generate embeddings for each fact sentence
-                embedding_vectors = embeddings_model.embed_documents(fact_sentences)
-                save_cache(embedding_vectors, f"cache/cache_embeddings_facts_{self.novel_name}.json")
-
-            return {chunk_id: embedding_vectors}
-
-        except Exception as e:
-            print(f"An error occurred during fact extraction or embedding: {e}")
-            return {chunk_id: []}
-
-    def generate_embeddings(self):
-        # forming the chain
-        book_path = self.novel_path
-        processing_chain = (
-        RunnableLambda(lambda path: self.split_book_into_chunks(chunk_size=10000)) # First, split the book into chunks, using the updated chunk_size for consistency
-        | RunnableLambda(lambda chunks: [
-            self.extract_and_embed_facts_langchain(chunk.page_content, i)
-            for i, chunk in enumerate(chunks)
-        ]) # Then, extract facts and embeddings for each chunk
-        | RunnableLambda(lambda list_of_dicts: {
-            k: v for d in list_of_dicts for k, v in d.items()
-        }) # Combine all chunk results into a single dictionary
-        | RunnableLambda(lambda final_dict: json.dumps(final_dict, indent=2)) # Convert the final dictionary to a JSON string
-        )
-
-        # Invoke the chain (this might take a long time to run due to processing the entire book)
-        print("Starting book processing chain...")
-        print(book_path)
-        result_json_string = processing_chain.invoke(book_path)
-        print("Book processing completed.")
-        return result_json_string
-    
-    # forward function
-    def forward(self):
-        print("Generating embeddings and storing in FAISS vector store...")
-        embeddings_json = self.generate_embeddings()
-        print("\n\nEmbeddings JSON generated!!!\n...")
-        # store in vector store faiss with chunk id as key and embedding as value
-        embeddings_dict = json.loads(embeddings_json)
-        documents = []
-        embeddings_list = []
-        ids = []
-        print("Preparing documents and embeddings for FAISS...")
-
-        idx = 0
-        for chunk_id, vectors in embeddings_dict.items():
-            for vec in vectors:
-                documents.append(
-                    Document(
-                        page_content=" ",   # dummy text (not used)
-                        metadata={"chunk_id": chunk_id},
-                        embedding=vec
-                    )
+    def process_chunk(self, chunk_text: str, chunk_id: int):
+        facts_cache = f"cache/facts_{self.novel_name}_{chunk_id}.json"
+        
+        # 1. Fact Extraction
+        fact_sentences = []
+        if os.path.exists(facts_cache):
+            # print(f"Loading facts for chunk {chunk_id} from cache...")
+            fact_sentences = load_cache(facts_cache)
+        else:
+            try:
+                llm = self.model.get_llm()
+                prompt_template = PromptTemplate(
+                    input_variables=["sentence"],
+                    template="""
+                            Extract distinct, atomic facts from the following sentence.
+                            List each fact on a new line as a sentence. Do not include introductory phrases or numbers.
+                            If no facts can be extracted, return an empty string.
+                            Sentence: {sentence}
+                            """
                 )
-                embeddings_list.append(vec)
-                # ids.append(f"{chunk_id}_{idx}")
-                # idx += 1
-        print(f"Total documents prepared: {len(documents)}")
-        embedding_model = PrecomputedEmbeddings(embeddings_list)
-        vectorstore = FAISS.from_documents(
-            documents=documents,
-            embedding=embedding_model
-        )
-        print("FAISS vector store created.")
-        vectorstore.save_local(self.novel_name + "_faiss_index")
-        print(f"FAISS vector store saved as {self.novel_name}_faiss_index")
+                
+                # Manual invocation of llm to debug/control better or use the chain
+                chain = prompt_template | llm | StrOutputParser()
+                extracted_text = chain.invoke({"sentence": chunk_text}).strip()
+                
+                # Avoid rate limits if necessary
+                # time.sleep(1) 
+                
+                if extracted_text:
+                    fact_sentences = [fact.strip() for fact in extracted_text.split('\n') if fact.strip()]
+                    save_cache(fact_sentences, facts_cache)
+                else:
+                    # Save empty to avoid re-running failing chunks? 
+                    # Better to not save empty so it retries, unless truly empty content.
+                    pass 
+                    
+            except Exception as e:
+                print(f"Error extracting facts for chunk {chunk_id}: {e}")
+                return [], []
+
+        if not fact_sentences:
+            # print(f"No facts found for chunk {chunk_id}.")
+            return [], []
+
+        # 2. Embeddings
+        embeddings_cache = f"cache/embeddings_{self.novel_name}_{chunk_id}.json"
+        if os.path.exists(embeddings_cache):
+            embedding_vectors = load_cache(embeddings_cache)
+        else:
+            try:
+                embeddings_model = self.model.get_embedding_model()
+                embedding_vectors = embeddings_model.embed_documents(fact_sentences)
+                save_cache(embedding_vectors, embeddings_cache)
+            except Exception as e:
+                print(f"Error generating embeddings for chunk {chunk_id}: {e}")
+                return [], []
+
+        return fact_sentences, embedding_vectors
+
+    def forward(self):
+        print("Starting incremental processing...")
+        if not os.path.exists("cache"):
+            os.makedirs("cache")
+            
+        chunks = self.split_book_into_chunks(chunk_size=10000)
+        if not chunks:
+            print("No chunks to process.")
+            return
+
+        tracker_file = f"cache/processed_chunks_{self.novel_name}.json"
+        processed_ids = set()
+        if os.path.exists(tracker_file):
+            try:
+                processed_ids = set(load_cache(tracker_file))
+                print(f"Loaded progress: {len(processed_ids)} chunks already processed.")
+            except:
+                pass
+
+        index_path = f"{self.novel_name}_faiss_index"
+        vectorstore = None
+        
+        # Try loading existing index
+        if os.path.exists(index_path):
+            try:
+                # Use the actual embedding model (OllamaEmbeddings) used in Model
+                vectorstore = FAISS.load_local(
+                    index_path, 
+                    self.model.get_embedding_model(),
+                    allow_dangerous_deserialization=True
+                )
+                print(f"Loaded existing FAISS index from {index_path}")
+            except Exception as e:
+                print(f"Warning: Could not load existing index ({e}). Starting fresh.")
+                vectorstore = None
+                processed_ids = set() # Reset if index is gone
+
+        total_chunks = len(chunks)
+        print(f"Total chunks to process: {total_chunks}")
+        
+        for i, chunk in enumerate(chunks):
+            if i in processed_ids:
+                continue
+
+            print(f"Processing Chunk {i + 1}/{total_chunks}...")
+            
+            # Using chunk.page_content logic
+            facts, embeddings = self.process_chunk(chunk.page_content, i)
+            
+            if facts and embeddings:
+                # Prepare data for FAISS
+                # FAISS expects list of (text, vector) if using from_embeddings/add_embeddings?
+                # Actually LangChain FAISS add_embeddings expects:
+                # text_embeddings: Iterable[Tuple[str, List[float]]]
+                
+                text_embeddings = list(zip(facts, embeddings))
+                metadatas = [{"chunk_id": i, "source": self.novel_name} for _ in facts]
+                
+                if vectorstore is None:
+                    vectorstore = FAISS.from_embeddings(
+                        text_embeddings=text_embeddings,
+                        embedding=self.model.get_embedding_model(),
+                        metadatas=metadatas
+                    )
+                else:
+                    vectorstore.add_embeddings(
+                        text_embeddings=text_embeddings,
+                        metadatas=metadatas
+                    )
+                
+                # Save regularly (e.g. every chunk)
+                vectorstore.save_local(index_path)
+            
+            # Mark as processed
+            processed_ids.add(i)
+            save_cache(list(processed_ids), tracker_file)
+            
+        print("\nAll chunks processed.")
+
+    def process_failed_chunks(self, output_api_error_indices: list[int]):
+         # We want to process specifically these chunks.
+        print(f"Retrying failed chunks: {output_api_error_indices}")
+        if not os.path.exists("cache"):
+            os.makedirs("cache")
+            
+        chunks_cache = f"cache/cache_chunks_{self.novel_name}.json"
+        if os.path.exists(chunks_cache):
+            print(f"Loading chunks from cache: {chunks_cache}")
+            chunks = load_cache(chunks_cache)
+        else:
+            print("Chunks cache not found. Re-splitting book.")
+            chunks_objs = self.split_book_into_chunks(chunk_size=10000)
+            chunks = [c.page_content for c in chunks_objs]
+
+        if not chunks:
+            print("No chunks to process.")
+            return
+
+        index_path = f"{self.novel_name}_faiss_index"
+        vectorstore = None
+        
+        # Try loading existing index
+        if os.path.exists(index_path):
+            try:
+                vectorstore = FAISS.load_local(
+                    index_path, 
+                    self.model.get_embedding_model(),
+                    allow_dangerous_deserialization=True
+                )
+                print(f"Loaded existing FAISS index from {index_path}")
+            except Exception as e:
+                print(f"Warning: Could not load existing index ({e}). Starting fresh.")
+                vectorstore = None
+        
+        for i in output_api_error_indices:
+            if i < 0 or i >= len(chunks):
+                print(f"Chunk ID {i} out of range. Skipping.")
+                continue
+                
+            print(f"Processing Chunk {i}...")
+            # Ideally we force re-processing even if cache exists, 
+            # OR we assume the user only passes IDs that actually failed (so no cache or empty).
+            # If we want to force explicit retry, we might need to delete cache first.
+            chunk_text = chunks[i]
+            
+            # Let's delete the 'failed' cache if it exists and is empty/invalid to ensure clean retry
+            facts_cache = f"cache/facts_{self.novel_name}_{i}.json"
+            if os.path.exists(facts_cache):
+                 # Optional: check if empty? For now, we trust process_chunk logic 
+                 # or we assume the user knows it failed.
+                 pass
+
+            facts, embeddings = self.process_chunk(chunk_text, i)
+            
+            if facts and embeddings:
+                text_embeddings = list(zip(facts, embeddings))
+                metadatas = [{"chunk_id": i, "source": self.novel_name} for _ in facts]
+                
+                if vectorstore is None:
+                    vectorstore = FAISS.from_embeddings(
+                        text_embeddings=text_embeddings,
+                        embedding=self.model.get_embedding_model(),
+                        metadatas=metadatas
+                    )
+                else:
+                    vectorstore.add_embeddings(
+                        text_embeddings=text_embeddings,
+                        metadatas=metadatas
+                    )
+                
+                vectorstore.save_local(index_path)
+                print(f"Chunk {i} successfully processed and saved.")
+            else:
+                 print(f"Chunk {i} failed again.")
