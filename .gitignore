@@ -2,5 +2,6 @@
 venv
 __pycache__
 *.pyc
-.cache
+cache/
 test.py
+*_index/
