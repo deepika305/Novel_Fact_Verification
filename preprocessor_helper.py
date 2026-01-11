@@ -158,6 +158,7 @@ class NovelPreprocessor():
                 pass
 
         index_path = f"{self.novel_name}_faiss_index"
+        index_path = index_path.lower()
         vectorstore = None
         
         # Try loading existing index
@@ -182,7 +183,7 @@ class NovelPreprocessor():
             if i in processed_ids:
                 continue
 
-            print(f"Processing Chunk {i + 1}/{total_chunks}...")
+            print(f"Processing Chunk {i}/{total_chunks-1}...")
             
             # Using chunk.page_content logic
             facts, embeddings = self.process_chunk(chunk.page_content, i)
@@ -237,6 +238,7 @@ class NovelPreprocessor():
             return
 
         index_path = f"{self.novel_name}_faiss_index"
+        index_path = index_path.lower()
         vectorstore = None
         
         # Try loading existing index

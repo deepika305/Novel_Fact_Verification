@@ -263,11 +263,16 @@ def dummy_function(bookname, char, content, model):
     print("dummy function called")
     backstory = f"This line is for {char} character: {content}"
     list_of_documents = extract_and_embed_claims_langchain(backstory, bookname, model)
-    vectorstore = FAISS.load_local(
-    f"{bookname.lower()}_faiss_index",
-    embeddings=PrecomputedEmbeddings(),
-    allow_dangerous_deserialization=True
-    )
+    folder_path = f"{bookname.lower()}_faiss_index"
+    if os.path.exists(f"{bookname.lower()}_faiss_index"):
+        print(f"Vector store found at '{folder_path}'. Loading...")
+        vectorstore = FAISS.load_local(
+        f"{bookname.lower()}_faiss_index",
+        embeddings=PrecomputedEmbeddings(),
+        allow_dangerous_deserialization=True
+        )
+    else:
+        print(f"Vector store Failed...\n\n\n\n\n")
     print("vector store loaded...")
     final_verdict = "1"
     reason = "All claims are consistent with the backstory."

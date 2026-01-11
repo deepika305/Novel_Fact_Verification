@@ -2,7 +2,9 @@
 venv
 __pycache__
 *.pyc
-cache/
+cache/embeddings*.json
+cache/facts*.json
+cache/processed*.json
 test.py
 *_index/
 .DS_Store

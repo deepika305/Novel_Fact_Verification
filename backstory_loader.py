@@ -39,6 +39,8 @@ class DataSetLoader:
                     "prediction": verdict,
                     "rationale": reason
                 })
+                out_df = pd.DataFrame(results)
+                out_df.to_csv("results.csv", index=False, encoding="utf-8")
             out_df = pd.DataFrame(results)
             out_df.to_csv("results.csv", index=False, encoding="utf-8")
             print("Output saved to output.csv")
