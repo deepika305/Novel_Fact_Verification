@@ -36,7 +36,7 @@ class DataSetLoader:
                     # "book_name": bookname,
                     # "char": char,
                     # "content": content,
-                    "verdict": verdict,
+                    "verdict": verdict.lower(),
                     "reason": reason
                 })
             out_df = pd.DataFrame(results)

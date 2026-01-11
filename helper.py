@@ -13,18 +13,17 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_classic.output_parsers import OutputFixingParser
 from custom_llm import CustomLLM
-
-# from dotenv import load_dotenv
-
-# load_dotenv()
-# GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+import re
 
 
 class Model:
     def __init__(self):
         # self.llm = ChatOllama(model="gemma3:4b", temperature=0)
         self.llm = CustomLLM()
-        self.embedding_model = OllamaEmbeddings(model="embeddinggemma:latest")
+        self.embedding_model = OllamaEmbeddings(
+             model="embeddinggemma:latest",
+             base_url="https://d7jqfq3b-11434.inc1.devtunnels.ms/"
+             )
     def get_llm(self):
         return self.llm
     def get_embedding_model(self):
@@ -43,6 +42,55 @@ def get_data(CACHE_FILE):
     else:
         print("Cache not found. Generating data...")
         return None
+
+
+def extract_verdict_and_reason(text):
+    """
+    Robustly looks for the pattern 'VERDICT || Reason' anywhere in the text.
+    Case insensitive and handles extra whitespace.
+    """
+    # Clean up the text first
+    text = text.strip().replace("\n", " ")
+
+    # Regex explanation:
+    # (CONSISTENT|CONTRADICT) -> Look for either word
+    # \s*\|\|\s* -> Look for '||' with optional spaces around it
+    # (.+)                    -> Capture everything else as the reason
+    pattern = r"(CONSISTENT|CONTRADICT)\s*\|\|\s*(.+)"
+    
+    match = re.search(pattern, text, re.IGNORECASE)
+    
+    if match:
+        verdict = match.group(1).upper()
+        reason = match.group(2).strip()
+        return verdict == "CONSISTENT", reason
+    
+    return None, None
+
+def run_with_retry(chain, inputs, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            # Invoke the chain
+            result = chain.invoke(inputs)
+            
+            # Handle different response types (String vs AIMessage)
+            text = result.content if hasattr(result, "content") else str(result)
+            text = text.strip()
+
+            # Attempt to parse
+            is_consistent, reason = extract_verdict_and_reason(text)
+
+            if reason is not None:
+                return is_consistent, reason
+            
+            print(f"⚠️ Attempt {attempt+1} failed to parse. Output: {repr(text[:50])}...")
+
+        except Exception as e:
+            print(f"⚠️ Attempt {attempt+1} error: {e}")
+
+    # Fallback if all retries fail
+    print("❌ All retries failed. Defaulting to Error.")
+    return False, "Model failed to generate valid format after retries."
 
 class PrecomputedEmbeddings(Embeddings):
     def __init__(self, embeddings_list=None):
@@ -161,57 +209,63 @@ def check_consistency(backstory: str, chunk: str, char: str, model):
     prompt_template = PromptTemplate(
     input_variables=["character_name", "backstory", "chunk"],
     template="""
-              You are a literary consistency analyst.
+You are a strict Literary Continuity Editor. You are skeptical and detail-oriented.
+Your goal is to catch ANY discrepancy between a character's backstory and their actions in the novel chunk.
+---
+EXAMPLE 1:
+Backstory: John is a pacifist who hates guns.
+Chunk: John picked up the rifle and checked the sights expertly.
+Output: CONTRADICT || John is a pacifist but handled a gun expertly.
 
-              Your task is to determine whether the following text chunk from a novel
-              is consistent with the given character backstory.
+EXAMPLE 2:
+Backstory: Sarah is a master chess player.
+Chunk: She looked at the board and realized checkmate was inevitable in 3 moves.
+Output: CONSISTENT || Her analysis of the chess board aligns with her skills.
+---
 
-              Character Name:
-              {character_name}
+Check the following:
 
-              Character Backstory:
-              {backstory}
+Character Name: {character_name}
+Backstory: {backstory}
+Novel Chunk: {chunk}
 
-              Novel Chunk:
-              {chunk}
+Instructions:
+- Analyze for contradictions in personality, history, or abilities.
+- Respond with exactly ONE LINE.
+- Use the format: VERDICT || REASON
 
-              Instructions:
-              - Carefully reason step by step.
-              - Check for contradictions in personality, history, abilities, or motivations.
-              - If the chunk aligns with the backstory, mark it as Consistent.
-              - If it conflicts, mark it as Contradict.
-              - Respond ONLY in valid JSON format.
-
-              Required JSON format:
-              {{
-                "Verdict": "Consistent" or "Contradict",
-                "Reason": "Clear 1 line explanation of your reasoning"
-              }}
-            """
+Output:
+"""
             )
-    output_parser = JsonOutputParser()
-    safe_parser = OutputFixingParser.from_llm(
-        parser=output_parser,
-        llm=Model.get_llm(model)
-    )
-    chain = prompt_template | model.get_llm() | output_parser
+    llm = model.get_llm()
+    if hasattr(llm, "temperature"):
+        llm.temperature = 0.1 
 
-    result = chain.invoke({
+    chain = prompt_template | llm
+
+    inputs = {
         "character_name": char,
         "backstory": backstory,
         "chunk": chunk
-    })
+    }
+
+    is_consistent, reason = run_with_retry(chain, inputs)
+
+    result = {
+        "Verdict": "consistent" if is_consistent else "contradict", 
+        "Reason": reason
+    }
 
     print(f"Consistency Check Result: {result}")
-
     return result
+
 
 def dummy_function(bookname, char, content, model):
     print("dummy function called")
     backstory = f"This line is for {char} character: {content}"
     list_of_documents = extract_and_embed_claims_langchain(backstory, bookname, model)
     vectorstore = FAISS.load_local(
-    f"{bookname}_faiss_index",
+    f"{bookname.lower()}_faiss_index",
     embeddings=PrecomputedEmbeddings(),
     allow_dangerous_deserialization=True
     )
