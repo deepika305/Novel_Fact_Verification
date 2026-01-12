@@ -35,8 +35,8 @@ python -m venv venv
 pip install --upgrade pip
 pip install -r ./requirement.txt
 ```
-
-## Commands to run the project
+***
+## Commands to run the project (Runnable files)
 
 - Run the main application : main.py
 
@@ -46,7 +46,18 @@ pip install -r ./requirement.txt
 ```bash
 python ./main.py
 ```
+***
 
+# Pathway supported file
+- If you want to use the pathway supported file
+- You have to run the pw_server.py file
+- This will Create a server that will continiously listen to input.csv
+- You must paste the input csv values row-wise or directly multple rows (Do not type it in)
+- The output will be updated in real-time inside output.csv
+
+```bash
+python ./pw_server.py
+```
 ***
 
 IMPORTANT
@@ -54,7 +65,9 @@ Do not run the preprocessor file if you want to get outputs for the given books 
 
 If you want to add a new book, upload it inside Dataset/Books folder.After that you need to run preprocessor.py file, you will have to get free llm access(tutorial given later).
 
-
+```bash
+python ./preprocessor.py
+```
 
 # How to run the LLM
 
@@ -75,8 +88,7 @@ def __init__(self):
         # self.llm = ChatOllama(model="gemma3:4b", temperature=0)
         self.llm = CustomLLM()
         self.embedding_model = OllamaEmbeddings(
-             model="embeddinggemma:latest",
-             base_url="https://d7jqfq3b-11434.inc1.devtunnels.ms/"
+             model="embeddinggemma:latest"
              )
 ```
 
